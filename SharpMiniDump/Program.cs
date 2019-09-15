@@ -34,6 +34,7 @@ namespace SharpMiniDump
             Natives.OSVERSIONINFOEXW osInfo = new Natives.OSVERSIONINFOEXW();
             osInfo.dwOSVersionInfoSize = Marshal.SizeOf(osInfo);
 
+            //I know, this is not realy needed but today I have fun on run stuff dynamically :D
             IntPtr ntdll = Natives.LoadLibraryA("ntdll.dll");
             IntPtr proc = Natives.GetProcAddress(ntdll, "RtlGetVersion");
 
