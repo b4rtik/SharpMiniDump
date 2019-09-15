@@ -1,11 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿//
+// Author: B4rtik (@b4rtik)
+// Project: SharpMiniDump (https://github.com/b4rtik/SharpMiniDump)
+// License: BSD 3-Clause
+//
+
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security;
-using System.Text;
 using static SharpMiniDump.Natives;
 
 namespace SharpMiniDump
@@ -37,7 +40,7 @@ namespace SharpMiniDump
         /// 3:  b8 0f 00 00 00          mov eax,0x36
         /// 8:  0f 05                   syscall
         /// a:  c3                      ret
-        
+
         static byte[] bZwQuerySystemInformation10 = { 0x49, 0x89, 0xCA, 0xB8, 0x36, 0x00, 0x00, 0x00, 0x0F, 0x05, 0xC3 };
 
         /// 0:  49 89 ca                mov r10,rcx
@@ -58,7 +61,7 @@ namespace SharpMiniDump
         /// 3:  b8 0f 00 00 00          mov eax,0x55
         /// 8:  0f 05                   syscall
         /// a:  c3                      ret
-       
+
         static byte[] bNtCreateFile10 = { 0x49, 0x89, 0xCA, 0xB8, 0x55, 0x00, 0x00, 0x00, 0x0F, 0x05, 0xC3 };
 
         ///0:  49 89 ca                mov r10,rcx
@@ -80,13 +83,13 @@ namespace SharpMiniDump
                     IntPtr memoryAddress = (IntPtr)ptr;
 
                     if (!VirtualProtectEx(Process.GetCurrentProcess().Handle, memoryAddress,
-                        (UIntPtr)syscall.Length, 0x40 , out uint oldprotect))
+                        (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
                     {
                         throw new Win32Exception();
                     }
 
                     Delegates.ZwOpenProcess myAssemblyFunction = (Delegates.ZwOpenProcess)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.ZwOpenProcess));
-                    
+
                     return (NTSTATUS)myAssemblyFunction(out hProcess, processAccess, objAttribute, ref clientid);
                 }
             }
@@ -265,11 +268,11 @@ namespace SharpMiniDump
 
                     Delegates.NtCreateFile myAssemblyFunction = (Delegates.NtCreateFile)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.NtCreateFile));
 
-                    return (NTSTATUS)myAssemblyFunction(out  fileHandle,
+                    return (NTSTATUS)myAssemblyFunction(out fileHandle,
                  desiredAccess,
-                ref  objectAttributes,
-                out  ioStatusBlock,
-                ref  allocationSize,
+                ref objectAttributes,
+                out ioStatusBlock,
+                ref allocationSize,
                  fileAttributes,
                  shareAccess,
                  createDisposition,
@@ -339,7 +342,7 @@ namespace SharpMiniDump
             [SuppressUnmanagedCodeSecurity]
             [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
             public delegate bool MiniDumpWriteDump(IntPtr hProcess, uint ProcessId, Microsoft.Win32.SafeHandles.SafeFileHandle hFile, int DumpType, IntPtr ExceptionParam, IntPtr UserStreamParam, IntPtr CallbackParam);
-            
+
         }
     }
 }

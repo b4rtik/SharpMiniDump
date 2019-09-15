@@ -1,8 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿//
+// Author: B4rtik (@b4rtik)
+// Project: SharpMiniDump (https://github.com/b4rtik/SharpMiniDump)
+// License: BSD 3-Clause
+//
+
+using System;
 using System.Runtime.InteropServices;
-using System.Text;
 
 namespace SharpMiniDump
 {
@@ -829,13 +832,13 @@ namespace SharpMiniDump
         public static extern bool OpenProcessToken(IntPtr hProcess, UInt32 dwDesiredAccess, out IntPtr hToken);
 
         [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool GetTokenInformation( IntPtr TokenHandle, TOKEN_INFORMATION_CLASS TokenInformationClass, IntPtr TokenInformation,UInt32 TokenInformationLength, out UInt32 ReturnLength );
+        public static extern bool GetTokenInformation(IntPtr TokenHandle, TOKEN_INFORMATION_CLASS TokenInformationClass, IntPtr TokenInformation, UInt32 TokenInformationLength, out UInt32 ReturnLength);
 
         [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool LookupPrivilegeValue(String lpSystemName,String lpName,ref LUID luid);
+        public static extern bool LookupPrivilegeValue(String lpSystemName, String lpName, ref LUID luid);
 
         [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges,ref TOKEN_PRIVILEGES NewState,UInt32 BufferLengthInBytes,ref TOKEN_PRIVILEGES PreviousState,out UInt32 ReturnLengthInBytes );
+        public static extern bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges, ref TOKEN_PRIVILEGES NewState, UInt32 BufferLengthInBytes, ref TOKEN_PRIVILEGES PreviousState, out UInt32 ReturnLengthInBytes);
 
 
     }

