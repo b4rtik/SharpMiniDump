@@ -43,7 +43,7 @@ namespace SharpMiniDump
 
             pWinVerInfo.chOSMajorMinor = osInfo.dwMajorVersion + "." + osInfo.dwMinorVersion;
 
-            Console.WriteLine("[x] OS MajorMinor version : " + pWinVerInfo.chOSMajorMinor);
+            Console.WriteLine("[*] OS MajorMinor version : " + pWinVerInfo.chOSMajorMinor);
             if(!pWinVerInfo.chOSMajorMinor.Equals("10.0"))
             {
                 Console.WriteLine("[x] Windows 10 - Windows Server 2016 only");
