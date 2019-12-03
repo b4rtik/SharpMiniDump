@@ -766,6 +766,10 @@ namespace SharpMiniDump
             MaxSystemInfoClass = 0x0095
         }
 
+        public struct TOKEN_ELEVATION {
+            public int TokenIsElevated;
+        }
+
         public enum TOKEN_INFORMATION_CLASS
         {
             TokenUser = 1,
@@ -810,7 +814,7 @@ namespace SharpMiniDump
             TokenIsRestricted,
             MaxTokenInfoClass
         }
-
+        
         public enum TOKEN_ELEVATION_TYPE
         {
             TokenElevationTypeDefault = 1,
@@ -818,28 +822,656 @@ namespace SharpMiniDump
             TokenElevationTypeLimited
         }
 
+        public enum PSS_CAPTURE_FLAGS {
+            PSS_CAPTURE_NONE,
+            PSS_CAPTURE_VA_CLONE,
+            PSS_CAPTURE_RESERVED_00000002,
+            PSS_CAPTURE_HANDLES,
+            PSS_CAPTURE_HANDLE_NAME_INFORMATION,
+            PSS_CAPTURE_HANDLE_BASIC_INFORMATION,
+            PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION,
+            PSS_CAPTURE_HANDLE_TRACE,
+            PSS_CAPTURE_THREADS,
+            PSS_CAPTURE_THREAD_CONTEXT,
+            PSS_CAPTURE_THREAD_CONTEXT_EXTENDED,
+            PSS_CAPTURE_RESERVED_00000400,
+            PSS_CAPTURE_VA_SPACE,
+            PSS_CAPTURE_VA_SPACE_SECTION_INFORMATION,
+            PSS_CAPTURE_IPT_TRACE,
+            PSS_CREATE_BREAKAWAY_OPTIONAL,
+            PSS_CREATE_BREAKAWAY,
+            PSS_CREATE_FORCE_BREAKAWAY,
+            PSS_CREATE_USE_VM_ALLOCATIONS,
+            PSS_CREATE_MEASURE_PERFORMANCE,
+            PSS_CREATE_RELEASE_SECTION
+        }
 
-        [DllImport("kernel32.dll")]
-        public static extern bool VirtualProtectEx(IntPtr hProcess, IntPtr lpAddress, UIntPtr dwSize, uint flNewProtect, out uint lpflOldProtect);
+        public enum MINIDUMP_CALLBACK_TYPE : uint
+        {
+            ModuleCallback,
+            ThreadCallback,
+            ThreadExCallback,
+            IncludeThreadCallback,
+            IncludeModuleCallback,
+            MemoryCallback,
+            CancelCallback,
+            WriteKernelMinidumpCallback,
+            KernelMinidumpStatusCallback,
+            RemoveMemoryCallback,
+            IncludeVmRegionCallback,
+            IoStartCallback,
+            IoWriteAllCallback,
+            IoFinishCallback,
+            ReadMemoryFailureCallback,
+            SecondaryFlagsCallback,
+            IsProcessSnapshotCallback,
+            VmStartCallback,
+            VmQueryCallback,
+            VmPreReadCallback,
+            VmPostReadCallback
+        }
 
-        [DllImport("kernel32.dll", CharSet = CharSet.Ansi)]
-        public extern static IntPtr LoadLibraryA(string dllName);
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public unsafe struct MINIDUMP_THREAD_CALLBACK
+        {
+            public uint ThreadId;
+            public IntPtr ThreadHandle;
+            public fixed byte Context[1232];
+            public uint SizeOfContext;
+            public ulong StackBase;
+            public ulong StackEnd;
+        }
 
-        [DllImport("kernel32.dll")]
-        public extern static IntPtr GetProcAddress(IntPtr dllAddr, string procName);
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct MINIDUMP_THREAD_EX_CALLBACK
+        {
+            public MINIDUMP_THREAD_CALLBACK BasePart;
+            public ulong BackingStoreBase;
+            public ulong BackingStoreEnd;
+        }
 
-        [DllImport("kernel32.dll")]
-        public static extern bool OpenProcessToken(IntPtr hProcess, UInt32 dwDesiredAccess, out IntPtr hToken);
+        enum VS_FIXEDFILEINFO_FileFlags : uint
+        {
+            VS_FF_DEBUG = 0x00000001,
+            VS_FF_INFOINFERRED = 0x00000010,
+            VS_FF_PATCHED = 0x00000004,
+            VS_FF_PRERELEASE = 0x00000002,
+            VS_FF_PRIVATEBUILD = 0x00000008,
+            VS_FF_SPECIALBUILD = 0x00000020
+        }
 
-        [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool GetTokenInformation(IntPtr TokenHandle, TOKEN_INFORMATION_CLASS TokenInformationClass, IntPtr TokenInformation, UInt32 TokenInformationLength, out UInt32 ReturnLength);
+        enum VS_FIXEDFILEINFO_FileOSFlags : uint
+        {
+            VOS_DOS = 0x00010000,
+            VOS_NT = 0x00040000,
+            VOS__WINDOWS16 = 0x00000001,
+            VOS__WINDOWS32 = 0x00000004,
+            VOS_OS216 = 0x00020000,
+            VOS_OS232 = 0x00030000,
+            VOS__PM16 = 0x00000002,
+            VOS__PM32 = 0x00000003,
+            VOS_UNKNOWN = 0x00000000
+        }
 
-        [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool LookupPrivilegeValue(String lpSystemName, String lpName, ref LUID luid);
+        enum VS_FIXEDFILEINFO_FileTypeFlags : uint
+        {
+            VFT_APP = 0x00000001,
+            VFT_DLL = 0x00000002,
+            VFT_DRV = 0x00000003,
+            VFT_FONT = 0x00000004,
+            VFT_STATIC_LIB = 0x00000007,
+            VFT_UNKNOWN = 0x00000000,
+            VFT_VXD = 0x00000005
+        }
 
-        [DllImport("advapi32.dll", SetLastError = true)]
-        public static extern bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges, ref TOKEN_PRIVILEGES NewState, UInt32 BufferLengthInBytes, ref TOKEN_PRIVILEGES PreviousState, out UInt32 ReturnLengthInBytes);
+        enum VS_FIXEFILEINFO_FileSubTypeFlags : uint
+        {
+            // If the FileType is VFT_DRV
+            VFT2_DRV_COMM = 0x0000000A,
+            VFT2_DRV_DISPLAY = 0x00000004,
+            VFT2_DRV_INSTALLABLE = 0x00000008,
+            VFT2_DRV_KEYBOARD = 0x00000002,
+            VFT2_DRV_LANGUAGE = 0x00000003,
+            VFT2_DRV_MOUSE = 0x00000005,
+            VFT2_DRV_NETWORK = 0x00000006,
+            VFT2_DRV_PRINTER = 0x00000001,
+            VFT2_DRV_SOUND = 0x00000009,
+            VFT2_DRV_SYSTEM = 0x00000007,
+            VFT2_DRV_VERSIONED_PRINTER = 0x0000000C,
+
+            // If the FileType is VFT_FONT
+            VFT2_FONT_RASTER = 0x00000001,
+            VFT2_FONT_TRUETYPE = 0x00000003,
+            VFT2_FONT_VECTOR = 0x00000002,
+
+            VFT2_UNKNOWN = 0x00000000
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct VS_FIXEDFILEINFO
+        {
+            public uint dwSignature;
+            public uint dwStrucVersion;
+            public uint dwFileVersionMS;
+            public uint dwFileVersionLS;
+            public uint dwProductVersionMS;
+            public uint dwProductVersionLS;
+            public uint dwFileFlagsMask;
+            public uint dwFileFlags;
+            public uint dwFileOS;
+            public uint dwFileType;
+            public uint dwFileSubtype;
+            public uint dwFileDateMS;
+            public uint dwFileDateLS;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct MINIDUMP_MODULE_CALLBACK
+        {
+            public IntPtr FullPath; // This is a PCWSTR
+            public ulong BaseOfImage;
+            public uint SizeOfImage;
+            public uint CheckSum;
+            public uint TimeDateStamp;
+            public VS_FIXEDFILEINFO VersionInfo;
+            public IntPtr CvRecord;
+            public uint SizeOfCvRecord;
+            public IntPtr MiscRecord;
+            public uint SizeOfMiscRecord;
+        }
+
+        public struct MINIDUMP_INCLUDE_THREAD_CALLBACK
+        {
+            public uint ThreadId;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct MINIDUMP_INCLUDE_MODULE_CALLBACK
+        {
+            public ulong BaseOfImage;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct MINIDUMP_IO_CALLBACK
+        {
+            public IntPtr Handle;
+            public ulong Offset;
+            public IntPtr Buffer;
+            public uint BufferBytes;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct MINIDUMP_READ_MEMORY_FAILURE_CALLBACK
+        {
+            public ulong Offset;
+            public uint Bytes;
+            public int FailureStatus; // HRESULT
+        }
+
+        [Flags]
+        public enum MINIDUMP_SECONDARY_FLAGS : uint
+        {
+            MiniSecondaryWithoutPowerInfo = 0x00000001
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public struct MINIDUMP_CALLBACK_INPUT
+        {
+
+        const int CallbackTypeOffset = 4 + 8;
+
+            const int UnionOffset = CallbackTypeOffset + 4;
+
+            [FieldOffset(0)]
+            public uint ProcessId;
+            [FieldOffset(4)]
+            public IntPtr ProcessHandle;
+            [FieldOffset(CallbackTypeOffset)]
+            public MINIDUMP_CALLBACK_TYPE CallbackType;
+
+            [FieldOffset(UnionOffset)]
+            public int Status; // HRESULT
+            [FieldOffset(UnionOffset)]
+            public MINIDUMP_THREAD_CALLBACK Thread;
+            [FieldOffset(UnionOffset)]
+            public MINIDUMP_THREAD_EX_CALLBACK ThreadEx;
+            [FieldOffset(UnionOffset)]
+            public MINIDUMP_MODULE_CALLBACK Module;
+            [FieldOffset(UnionOffset)]
+            public MINIDUMP_INCLUDE_THREAD_CALLBACK IncludeThread;
+            [FieldOffset(UnionOffset)]
+            public MINIDUMP_INCLUDE_MODULE_CALLBACK IncludeModule;
+            [FieldOffset(UnionOffset)]
+            public MINIDUMP_IO_CALLBACK Io;
+            [FieldOffset(UnionOffset)]
+            public MINIDUMP_READ_MEMORY_FAILURE_CALLBACK ReadMemoryFailure;
+            [FieldOffset(UnionOffset)]
+            public MINIDUMP_SECONDARY_FLAGS SecondaryFlags;
+        }
+
+        public enum STATE : uint
+        {
+            MEM_COMMIT = 0x1000,
+            MEM_FREE = 0x10000,
+            MEM_RESERVE = 0x2000
+        }
+
+        public enum TYPE : uint
+        {
+            MEM_IMAGE = 0x1000000,
+            MEM_MAPPED = 0x40000,
+            MEM_PRIVATE = 0x20000
+        }
+
+        [Flags]
+        public enum PROTECT : uint
+        {
+            PAGE_EXECUTE = 0x10,
+            PAGE_EXECUTE_READ = 0x20,
+            PAGE_EXECUTE_READWRITE = 0x40,
+            PAGE_EXECUTE_WRITECOPY = 0x80,
+            PAGE_NOACCESS = 0x01,
+            PAGE_READONLY = 0x02,
+            PAGE_READWRITE = 0x04,
+            PAGE_WRITECOPY = 0x08,
+            PAGE_TARGETS_INVALID = 0x40000000,
+            PAGE_TARGETS_NO_UPDATE = 0x40000000,
+
+            PAGE_GUARD = 0x100,
+            PAGE_NOCACHE = 0x200,
+            PAGE_WRITECOMBINE = 0x400
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct MINIDUMP_MEMORY_INFO
+        {
+            public ulong BaseAddress;
+            public ulong AllocationBase;
+            public uint AllocationProtect;
+            public uint __alignment1;
+            public ulong RegionSize;
+            public STATE State;
+            public PROTECT Protect;
+            public TYPE Type;
+            public uint __alignment2;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct MemoryCallbackOutput
+        {
+            public ulong MemoryBase;
+            public uint MemorySize;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct CancelCallbackOutput
+        {
+            [MarshalAs(UnmanagedType.Bool)]
+            public bool CheckCancel;
+            [MarshalAs(UnmanagedType.Bool)]
+            public bool Cancel;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 4)]
+        public struct MemoryInfoCallbackOutput
+        {
+            public MINIDUMP_MEMORY_INFO VmRegion;
+            [MarshalAs(UnmanagedType.Bool)]
+            public bool Continue;
+        }
+
+        [Flags]
+        public enum THREAD_WRITE_FLAGS : uint
+        {
+            ThreadWriteThread = 0x0001,
+            ThreadWriteStack = 0x0002,
+            ThreadWriteContext = 0x0004,
+            ThreadWriteBackingStore = 0x0008,
+            ThreadWriteInstructionWindow = 0x0010,
+            ThreadWriteThreadData = 0x0020,
+            ThreadWriteThreadInfo = 0x0040
+        }
+
+        [Flags]
+        public enum MODULE_WRITE_FLAGS : uint
+        {
+            ModuleWriteModule = 0x0001,
+            ModuleWriteDataSeg = 0x0002,
+            ModuleWriteMiscRecord = 0x0004,
+            ModuleWriteCvRecord = 0x0008,
+            ModuleReferencedByMemory = 0x0010,
+            ModuleWriteTlsData = 0x0020,
+            ModuleWriteCodeSegs = 0x0040
+        }
+
+        [StructLayout(LayoutKind.Explicit, Pack = 4)]
+        public struct MINIDUMP_CALLBACK_OUTPUT
+        {
+            [FieldOffset(0)]
+            public MODULE_WRITE_FLAGS ModuleWriteFlags;
+            [FieldOffset(0)]
+            public THREAD_WRITE_FLAGS ThreadWriteFlags;
+            [FieldOffset(0)]
+            public uint SecondaryFlags;
+            [FieldOffset(0)]
+            public MemoryCallbackOutput Memory;
+            [FieldOffset(0)]
+            public CancelCallbackOutput Cancel;
+            [FieldOffset(0)]
+            public IntPtr Handle;
+            [FieldOffset(0)]
+            public MemoryInfoCallbackOutput MemoryInfo;
+            [FieldOffset(0)]
+            public int Status; // HRESULT
+        }
+
+        [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public delegate bool MINIDUMP_CALLBACK_ROUTINE(
+            [In] IntPtr CallbackParam,
+            [In] ref MINIDUMP_CALLBACK_INPUT CallbackInput,
+            [In, Out] ref MINIDUMP_CALLBACK_OUTPUT CallbackOutput
+            );
+
+        public struct MINIDUMP_CALLBACK_INFORMATION
+        {
+            public MINIDUMP_CALLBACK_ROUTINE CallbackRoutine;
+            public IntPtr CallbackParam;
+        }
+
+        public enum CONTEXT_FLAGS : uint
+        {
+            CONTEXT_i386 = 0x10000,
+            CONTEXT_i486 = 0x10000,   //  same as i386
+            CONTEXT_CONTROL = CONTEXT_i386 | 0x01, // SS:SP, CS:IP, FLAGS, BP
+            CONTEXT_INTEGER = CONTEXT_i386 | 0x02, // AX, BX, CX, DX, SI, DI
+            CONTEXT_SEGMENTS = CONTEXT_i386 | 0x04, // DS, ES, FS, GS
+            CONTEXT_FLOATING_POINT = CONTEXT_i386 | 0x08, // 387 state
+            CONTEXT_DEBUG_REGISTERS = CONTEXT_i386 | 0x10, // DB 0-3,6,7
+            CONTEXT_EXTENDED_REGISTERS = CONTEXT_i386 | 0x20, // cpu specific extensions
+            CONTEXT_FULL = CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS,
+            CONTEXT_ALL = CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS | CONTEXT_EXTENDED_REGISTERS
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct M128A
+        {
+            public ulong High;
+            public long Low;
+
+            public override string ToString()
+            {
+                return string.Format("High:{0}, Low:{1}", this.High, this.Low);
+            }
+        }
+
+        /// <summary>
+        /// x64
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 16)]
+        public struct XSAVE_FORMAT64
+        {
+            public ushort ControlWord;
+            public ushort StatusWord;
+            public byte TagWord;
+            public byte Reserved1;
+            public ushort ErrorOpcode;
+            public uint ErrorOffset;
+            public ushort ErrorSelector;
+            public ushort Reserved2;
+            public uint DataOffset;
+            public ushort DataSelector;
+            public ushort Reserved3;
+            public uint MxCsr;
+            public uint MxCsr_Mask;
+
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 8)]
+            public M128A[] FloatRegisters;
+
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 16)]
+            public M128A[] XmmRegisters;
+
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 96)]
+            public byte[] Reserved4;
+        }
+
+        
+
+        /// <summary>
+        /// x64
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 16)]
+        public struct CONTEXT
+        {
+            public ulong P1Home;
+            public ulong P2Home;
+            public ulong P3Home;
+            public ulong P4Home;
+            public ulong P5Home;
+            public ulong P6Home;
+
+            public CONTEXT_FLAGS ContextFlags;
+            public uint MxCsr;
+
+            public ushort SegCs;
+            public ushort SegDs;
+            public ushort SegEs;
+            public ushort SegFs;
+            public ushort SegGs;
+            public ushort SegSs;
+            public uint EFlags;
+
+            public ulong Dr0;
+            public ulong Dr1;
+            public ulong Dr2;
+            public ulong Dr3;
+            public ulong Dr6;
+            public ulong Dr7;
+
+            public ulong Rax;
+            public ulong Rcx;
+            public ulong Rdx;
+            public ulong Rbx;
+            public ulong Rsp;
+            public ulong Rbp;
+            public ulong Rsi;
+            public ulong Rdi;
+            public ulong R8;
+            public ulong R9;
+            public ulong R10;
+            public ulong R11;
+            public ulong R12;
+            public ulong R13;
+            public ulong R14;
+            public ulong R15;
+            public ulong Rip;
+
+            public XSAVE_FORMAT64 DUMMYUNIONNAME;
+
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = 26)]
+            public M128A[] VectorRegister;
+            public ulong VectorControl;
+
+            public ulong DebugControl;
+            public ulong LastBranchToRip;
+            public ulong LastBranchFromRip;
+            public ulong LastExceptionToRip;
+            public ulong LastExceptionFromRip;
+        }
 
 
+        public static IntPtr OpenProcess(ProcessAccessFlags processAccess, bool bInheritHandle, int processId)
+        {
+            Natives.CLIENT_ID clientid = new Natives.CLIENT_ID();
+            clientid.UniqueProcess = (IntPtr)processId;
+            clientid.UniqueThread = IntPtr.Zero;
+
+            IntPtr hProcess = IntPtr.Zero;
+
+            Natives.OBJECT_ATTRIBUTES objAttribute = new Natives.OBJECT_ATTRIBUTES();
+
+            NTSTATUS res = NativeSysCall.ZwOpenProcess10(ref hProcess, processAccess, objAttribute, ref clientid);
+
+            return hProcess;
+        }
+
+        private static IntPtr GetNtDll()
+        {
+
+            return LoadLibrary("ntdll.dll");
+
+        }
+
+        
+        public static int NtFilterToken(IntPtr TokenHandle, uint Flags, IntPtr SidsToDisable, IntPtr PrivilegesToDelete, IntPtr RestrictedSids, ref IntPtr hToken)
+        {
+            IntPtr proc = GetProcAddress(GetNtDll(), "NtFilterToken");
+            NativeSysCall.Delegates.NtFilterToken NtSetInformationToken = (NativeSysCall.Delegates.NtFilterToken)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.NtFilterToken));
+            return NtFilterToken(TokenHandle, Flags, SidsToDisable, PrivilegesToDelete, RestrictedSids, ref hToken);
+        }
+        
+        private static IntPtr GetKernel32()
+        {
+
+            return LoadLibrary("Kernel32.dll");
+
+        }
+
+        private static IntPtr GetKernelbase()
+        {
+
+            return LoadLibrary("Kernelbase.dll");
+
+        }
+
+        private static IntPtr GetAdvapi32()
+        {
+
+            return LoadLibrary("Advapi32.dll");
+
+        }
+
+        private static IntPtr GetDbgcore()
+        {
+
+            return LoadLibrary("dbgcore.dll");
+
+        }
+
+        public static IntPtr GetCurrentProcess()
+        {
+            IntPtr proc = GetProcAddress(GetKernel32(), "GetCurrentProcess");
+            NativeSysCall.Delegates.GetCurrentProcess GetCurrentProcess = (NativeSysCall.Delegates.GetCurrentProcess)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.GetCurrentProcess));
+            return GetCurrentProcess();
+        }
+
+        public static bool CloseHandle(IntPtr handle)
+        {
+            IntPtr proc = GetProcAddress(GetKernel32(), "CloseHandle");
+            NativeSysCall.Delegates.CloseHandle CloseHandle = (NativeSysCall.Delegates.CloseHandle)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.CloseHandle));
+            return CloseHandle(handle);
+        }
+
+        public static bool UpdateProcThreadAttribute(IntPtr lpAttributeList, uint dwFlags, IntPtr Attribute, IntPtr lpValue, IntPtr cbSize, IntPtr lpPreviousValue, IntPtr lpReturnSize)
+        {
+            IntPtr proc = GetProcAddress(GetKernelbase(), "UpdateProcThreadAttribute");
+            NativeSysCall.Delegates.UpdateProcThreadAttribute UpdateProcThreadAttribute = (NativeSysCall.Delegates.UpdateProcThreadAttribute)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.UpdateProcThreadAttribute));
+            return UpdateProcThreadAttribute(lpAttributeList, dwFlags, Attribute, lpValue, cbSize, lpPreviousValue, lpReturnSize);
+        }
+
+        public static bool InitializeProcThreadAttributeList(IntPtr lpAttributeList, int dwAttributeCount, int dwFlags, ref IntPtr lpSize)
+        {
+            IntPtr proc = GetProcAddress(GetKernelbase(), "InitializeProcThreadAttributeList");
+            NativeSysCall.Delegates.InitializeProcThreadAttributeList InitializeProcThreadAttributeList = (NativeSysCall.Delegates.InitializeProcThreadAttributeList)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.InitializeProcThreadAttributeList));
+            return InitializeProcThreadAttributeList(lpAttributeList, dwAttributeCount, dwFlags, ref lpSize);
+        }
+
+        public static bool RtlGetVersion(ref OSVERSIONINFOEXW lpVersionInformation)
+        {
+            IntPtr proc = GetProcAddress(GetNtDll(), "RtlGetVersion");
+            NativeSysCall.Delegates.RtlGetVersion RtlGetVersion = (NativeSysCall.Delegates.RtlGetVersion)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.RtlGetVersion));
+            return RtlGetVersion(ref lpVersionInformation);
+        }
+
+        public static bool VirtualProtect(IntPtr lpAddress, UIntPtr dwSize, uint flNewProtect, out uint lpflOldProtect)
+        {
+            IntPtr proc = GetProcAddress(GetKernelbase(), "VirtualProtect");
+            NativeSysCall.Delegates.VirtualProtect VirtualProtect = (NativeSysCall.Delegates.VirtualProtect)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.VirtualProtect));
+            return VirtualProtect(lpAddress, dwSize, flNewProtect, out lpflOldProtect);
+        }
+
+        public static bool VirtualProtectEx(IntPtr hProcess, IntPtr lpAddress, IntPtr dwSize, uint newprotect, out uint oldprotect)
+        {
+            IntPtr proc = GetProcAddress(GetKernelbase(), "VirtualProtectEx");
+            NativeSysCall.Delegates.VirtualProtectEx VirtualProtectEx = (NativeSysCall.Delegates.VirtualProtectEx)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.VirtualProtectEx));
+            return VirtualProtectEx(hProcess, lpAddress, dwSize, newprotect, out oldprotect);
+        }
+
+        public static UInt32 LdrLoadDll(IntPtr PathToFile, UInt32 dwFlags, ref Natives.UNICODE_STRING ModuleFileName, ref IntPtr ModuleHandle)
+        {
+            IntPtr proc = GetProcAddress(GetNtDll(), "LdrLoadDll");
+            NativeSysCall.Delegates.LdrLoadDll LdrLoadDll = (NativeSysCall.Delegates.LdrLoadDll)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.LdrLoadDll));
+            return (uint)LdrLoadDll(PathToFile, dwFlags, ref ModuleFileName, ref ModuleHandle);
+        }
+
+        public static void RtlInitUnicodeString(ref Natives.UNICODE_STRING DestinationString, [MarshalAs(UnmanagedType.LPWStr)] string SourceString)
+        {
+            IntPtr proc = GetProcAddress(GetNtDll(), "RtlInitUnicodeString");
+            NativeSysCall.Delegates.RtlInitUnicodeString RtlInitUnicodeString = (NativeSysCall.Delegates.RtlInitUnicodeString)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.RtlInitUnicodeString));
+            RtlInitUnicodeString(ref DestinationString, SourceString);
+        }
+
+        public static  bool GetTokenInformation(IntPtr TokenHandle, TOKEN_INFORMATION_CLASS TokenInformationClass, IntPtr TokenInformation, UInt32 TokenInformationLength, out UInt32 ReturnLength)
+        {
+            IntPtr proc = GetProcAddress(GetKernelbase(), "GetTokenInformation");
+            NativeSysCall.Delegates.GetTokenInformation GetTokenInformation = (NativeSysCall.Delegates.GetTokenInformation)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.GetTokenInformation));
+            return GetTokenInformation( TokenHandle,  TokenInformationClass,  TokenInformation,  TokenInformationLength, out  ReturnLength);
+        }
+
+        public static bool OpenProcessToken(IntPtr hProcess, UInt32 dwDesiredAccess, out IntPtr hToken)
+        {
+            IntPtr proc = GetProcAddress(GetKernelbase(), "OpenProcessToken");
+            NativeSysCall.Delegates.OpenProcessToken OpenProcessToken = (NativeSysCall.Delegates.OpenProcessToken)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.OpenProcessToken));
+            return OpenProcessToken( hProcess,  dwDesiredAccess, out  hToken);
+        }
+
+        public static bool MiniDumpWriteDump(IntPtr hProcess, uint ProcessId, Microsoft.Win32.SafeHandles.SafeFileHandle hFile, int DumpType, IntPtr ExceptionParam, IntPtr UserStreamParam, IntPtr CallbackParam)
+        {
+            IntPtr proc = GetProcAddress(GetDbgcore(), "MiniDumpWriteDump");
+            NativeSysCall.Delegates.MiniDumpWriteDump MiniDumpWriteDump = (NativeSysCall.Delegates.MiniDumpWriteDump)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.MiniDumpWriteDump));
+            return MiniDumpWriteDump( hProcess,  ProcessId,  hFile,  DumpType,  ExceptionParam,  UserStreamParam,  CallbackParam);
+        }
+
+        public static bool LookupPrivilegeValue(String lpSystemName, String lpName, ref LUID luid)
+        {
+            IntPtr proc = GetProcAddress(GetAdvapi32(), "LookupPrivilegeValueA");
+            NativeSysCall.Delegates.LookupPrivilegeValue LookupPrivilegeValue = (NativeSysCall.Delegates.LookupPrivilegeValue)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.LookupPrivilegeValue));
+            return LookupPrivilegeValue( lpSystemName,  lpName, ref  luid);
+        }
+
+        public static  bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges, ref TOKEN_PRIVILEGES NewState, UInt32 BufferLengthInBytes, ref TOKEN_PRIVILEGES PreviousState, out UInt32 ReturnLengthInBytes)
+        {
+            IntPtr proc = GetProcAddress(GetAdvapi32(), "AdjustTokenPrivileges");
+            NativeSysCall.Delegates.AdjustTokenPrivileges AdjustTokenPrivileges = (NativeSysCall.Delegates.AdjustTokenPrivileges)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.AdjustTokenPrivileges));
+            return AdjustTokenPrivileges( TokenHandle,  DisableAllPrivileges, ref  NewState,  BufferLengthInBytes, ref  PreviousState, out  ReturnLengthInBytes);
+        }
+
+        public static int PssCaptureSnapshot(IntPtr ProcessHandle, PSS_CAPTURE_FLAGS CaptureFlags, int ThreadContextFlags, ref IntPtr SnapshotHandle)
+        {
+            IntPtr proc = GetProcAddress(GetKernel32(), "PssCaptureSnapshot");
+            NativeSysCall.Delegates.PssCaptureSnapshot PssCaptureSnapshot = (NativeSysCall.Delegates.PssCaptureSnapshot)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.PssCaptureSnapshot));
+            return PssCaptureSnapshot( ProcessHandle,  CaptureFlags,  ThreadContextFlags, ref SnapshotHandle);
+        }
+
+        public static IntPtr GetProcAddress(IntPtr hModule, string procName)
+        {
+            return CustomLoadLibrary.GetExportAddress(hModule, procName);
+        }
+
+
+        public static IntPtr LoadLibrary(string name)
+        {
+            return CustomLoadLibrary.GetDllAddress(name, true);
+        }
     }
 }

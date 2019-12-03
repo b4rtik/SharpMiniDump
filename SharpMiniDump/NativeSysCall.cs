@@ -82,7 +82,7 @@ namespace SharpMiniDump
 
                     IntPtr memoryAddress = (IntPtr)ptr;
 
-                    if (!VirtualProtectEx(Process.GetCurrentProcess().Handle, memoryAddress,
+                    if (!Natives.VirtualProtect(memoryAddress,
                         (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
                     {
                         throw new Win32Exception();
@@ -106,7 +106,7 @@ namespace SharpMiniDump
 
                     IntPtr memoryAddress = (IntPtr)ptr;
 
-                    if (!VirtualProtectEx(Process.GetCurrentProcess().Handle, memoryAddress,
+                    if (!Natives.VirtualProtect( memoryAddress,
                         (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
                     {
                         throw new Win32Exception();
@@ -130,7 +130,7 @@ namespace SharpMiniDump
 
                     IntPtr memoryAddress = (IntPtr)ptr;
 
-                    if (!VirtualProtectEx(Process.GetCurrentProcess().Handle, memoryAddress,
+                    if (!Natives.VirtualProtect( memoryAddress,
                         (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
                     {
                         throw new Win32Exception();
@@ -154,7 +154,7 @@ namespace SharpMiniDump
 
                     IntPtr memoryAddress = (IntPtr)ptr;
 
-                    if (!VirtualProtectEx(Process.GetCurrentProcess().Handle, memoryAddress,
+                    if (!Natives.VirtualProtect(memoryAddress,
                         (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
                     {
                         throw new Win32Exception();
@@ -178,7 +178,7 @@ namespace SharpMiniDump
 
                     IntPtr memoryAddress = (IntPtr)ptr;
 
-                    if (!VirtualProtectEx(Process.GetCurrentProcess().Handle, memoryAddress,
+                    if (!Natives.VirtualProtect(memoryAddress,
                         (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
                     {
                         throw new Win32Exception();
@@ -202,7 +202,7 @@ namespace SharpMiniDump
 
                     IntPtr memoryAddress = (IntPtr)ptr;
 
-                    if (!VirtualProtectEx(Process.GetCurrentProcess().Handle, memoryAddress,
+                    if (!Natives.VirtualProtect(memoryAddress,
                         (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
                     {
                         throw new Win32Exception();
@@ -226,7 +226,7 @@ namespace SharpMiniDump
 
                     IntPtr memoryAddress = (IntPtr)ptr;
 
-                    if (!VirtualProtectEx(Process.GetCurrentProcess().Handle, memoryAddress,
+                    if (!Natives.VirtualProtect(memoryAddress,
                         (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
                     {
                         throw new Win32Exception();
@@ -260,7 +260,7 @@ namespace SharpMiniDump
 
                     IntPtr memoryAddress = (IntPtr)ptr;
 
-                    if (!VirtualProtectEx(Process.GetCurrentProcess().Handle, memoryAddress,
+                    if (!Natives.VirtualProtect(memoryAddress,
                         (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
                     {
                         throw new Win32Exception();
@@ -343,6 +343,74 @@ namespace SharpMiniDump
             [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
             public delegate bool MiniDumpWriteDump(IntPtr hProcess, uint ProcessId, Microsoft.Win32.SafeHandles.SafeFileHandle hFile, int DumpType, IntPtr ExceptionParam, IntPtr UserStreamParam, IntPtr CallbackParam);
 
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate bool OpenProcessToken(IntPtr hProcess, UInt32 dwDesiredAccess, out IntPtr hToken);
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate int LdrLoadDll(IntPtr PathToFile,
+                UInt32 dwFlags,
+                ref Natives.UNICODE_STRING ModuleFileName,
+                ref IntPtr ModuleHandle);
+
+            
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate int NtFilterToken(IntPtr TokenHandle, uint Flags, IntPtr SidsToDisable, IntPtr PrivilegesToDelete, IntPtr RestrictedSids, ref IntPtr hToken);
+            
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate bool RevertToSelf();
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate Boolean ImpersonateLoggedOnUser(IntPtr hToken);
+            
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate IntPtr GetCurrentProcess();
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate bool CloseHandle(IntPtr handle);
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate bool GetTokenInformation(IntPtr TokenHandle, TOKEN_INFORMATION_CLASS TokenInformationClass, IntPtr TokenInformation, UInt32 TokenInformationLength, out UInt32 ReturnLength);
+            
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate bool UpdateProcThreadAttribute(IntPtr lpAttributeList, uint dwFlags, IntPtr Attribute, IntPtr lpValue, IntPtr cbSize, IntPtr lpPreviousValue, IntPtr lpReturnSize);
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate bool InitializeProcThreadAttributeList(IntPtr lpAttributeList, int dwAttributeCount, int dwFlags, ref IntPtr lpSize);
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate bool VirtualProtect(IntPtr lpAddress, UIntPtr dwSize, uint flNewProtect, out uint lpflOldProtect);
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate bool VirtualProtectEx(IntPtr hProcess, IntPtr lpAddress, IntPtr dwSize, uint newprotect, out uint oldprotect);
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate bool LookupPrivilegeValue(String lpSystemName, String lpName, ref LUID luid);
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate bool AdjustTokenPrivileges(IntPtr TokenHandle, bool DisableAllPrivileges, ref TOKEN_PRIVILEGES NewState, UInt32 BufferLengthInBytes, ref TOKEN_PRIVILEGES PreviousState, out UInt32 ReturnLengthInBytes);
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate int PssCaptureSnapshot(IntPtr ProcessHandle, PSS_CAPTURE_FLAGS CaptureFlags, int ThreadContextFlags, ref IntPtr SnapshotHandle);
+
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate bool MyMiniDumpWriteDumpCallback(IntPtr CallbackParam,  IntPtr CallbackInput, IntPtr CallbackOutput);
         }
     }
 }

