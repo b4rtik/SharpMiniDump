@@ -1,28 +1,12 @@
-﻿//
-// Author: B4rtik (@b4rtik)
-// Project: RedPeanut (https://github.com/b4rtik/RedPeanut)
-// License: BSD 3-Clause
-//
-
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace SharpMiniDump
 {
     public class CustomLoadLibrary
-    {
-        /// <summary>
-        /// Resolves LdrLoadDll and uses that function to load a DLL from disk.
-        /// </summary>
-        /// <author>Ruben Boonen (@FuzzySec)</author>
-        /// <param name="DLLPath">The path to the DLL on disk. Uses the LoadLibrary convention.</param>
-        /// <returns>IntPtr base address of the loaded module or IntPtr.Zero if the module was not loaded successfully.</returns>
+    {        
         public static IntPtr LoadModuleFromDisk(string DLLPath)
         {
             Natives.UNICODE_STRING uModuleName = new Natives.UNICODE_STRING();
@@ -56,40 +40,7 @@ namespace SharpMiniDump
 
             return hModule;
         }
-
-        /// <summary>
-        /// Helper for getting the pointer to a function from a DLL loaded by the process.
-        /// </summary>
-        /// <author>Ruben Boonen (@FuzzySec)</author>
-        /// <param name="DLLName">The name of the DLL (e.g. "ntdll.dll" or "C:\Windows\System32\ntdll.dll").</param>
-        /// <param name="FunctionName">Name of the exported procedure.</param>
-        /// <param name="CanLoadFromDisk">Optional, indicates if the function can try to load the DLL from disk if it is not found in the loaded module list.</param>
-        /// <returns>IntPtr for the desired function.</returns>
-        public static IntPtr GetLibraryAddress(string DLLName, string FunctionName, bool CanLoadFromDisk = false)
-        {
-            IntPtr hModule = GetLoadedModuleAddress(DLLName);
-            if (hModule == IntPtr.Zero && CanLoadFromDisk)
-            {
-                hModule = LoadModuleFromDisk(DLLName);
-                if (hModule == IntPtr.Zero)
-                {
-                    throw new FileNotFoundException(DLLName + ", unable to find the specified file.");
-                }
-            }
-            else if (hModule == IntPtr.Zero)
-            {
-                throw new DllNotFoundException(DLLName + ", Dll was not found.");
-            }
-
-            return GetExportAddress(hModule, FunctionName);
-        }
-
-        /// <summary>
-        /// Helper for getting the base address of a module loaded by the current process. This base address could be passed to GetProcAddress/LdrGetProcedureAddress or it could be used for manual export parsing.
-        /// </summary>
-        /// <author>Ruben Boonen (@FuzzySec)</author>
-        /// <param name="DLLName">The name of the DLL (e.g. "ntdll.dll").</param>
-        /// <returns>IntPtr base address of the loaded module or IntPtr.Zero if the module is not found.</returns>
+        
         public static IntPtr GetLoadedModuleAddress(string DLLName)
         {
             ProcessModuleCollection ProcModules = Process.GetCurrentProcess().Modules;
@@ -103,13 +54,7 @@ namespace SharpMiniDump
 
             return IntPtr.Zero;
         }
-        /// <summary>
-        /// Given a module base address, resolve the address of a function by manually walking the module export table.
-        /// </summary>
-        /// <author>Ruben Boonen (@FuzzySec)</author>
-        /// <param name="ModuleBase">A pointer to the base address where the module is loaded in the current process.</param>
-        /// <param name="ExportName">The name of the export to search for (e.g. "NtAlertResumeThread").</param>
-        /// <returns>IntPtr for the desired function.</returns>
+
         public static IntPtr GetExportAddress(IntPtr ModuleBase, string ExportName)
         {
             IntPtr FunctionPtr = IntPtr.Zero;

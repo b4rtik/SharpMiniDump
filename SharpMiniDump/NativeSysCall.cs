@@ -1,12 +1,4 @@
-﻿//
-// Author: B4rtik (@b4rtik)
-// Project: SharpMiniDump (https://github.com/b4rtik/SharpMiniDump)
-// License: BSD 3-Clause
-//
-
-using System;
-using System.ComponentModel;
-using System.Diagnostics;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Security;
 using static SharpMiniDump.Natives;
@@ -37,27 +29,6 @@ namespace SharpMiniDump
         static byte[] bZwProtectVirtualMemory10 = { 0x49, 0x89, 0xCA, 0xB8, 0x50, 0x00, 0x00, 0x00, 0x0F, 0x05, 0xC3 };
 
         /// 0:  49 89 ca                mov r10,rcx
-        /// 3:  b8 0f 00 00 00          mov eax,0x36
-        /// 8:  0f 05                   syscall
-        /// a:  c3                      ret
-
-        static byte[] bZwQuerySystemInformation10 = { 0x49, 0x89, 0xCA, 0xB8, 0x36, 0x00, 0x00, 0x00, 0x0F, 0x05, 0xC3 };
-
-        /// 0:  49 89 ca                mov r10,rcx
-        /// 3:  b8 0f 00 00 00          mov eax,0x18
-        /// 8:  0f 05                   syscall
-        /// a:  c3                      ret
-
-        static byte[] bNtAllocateVirtualMemory10 = { 0x49, 0x89, 0xCA, 0xB8, 0x18, 0x00, 0x00, 0x00, 0x0F, 0x05, 0xC3 };
-
-        /// 0:  49 89 ca                mov r10,rcx
-        /// 3:  b8 0f 00 00 00          mov eax,0x1E
-        /// 8:  0f 05                   syscall
-        /// a:  c3                      ret
-
-        static byte[] bNtFreeVirtualMemory10 = { 0x49, 0x89, 0xCA, 0xB8, 0x1E, 0x00, 0x00, 0x00, 0x0F, 0x05, 0xC3 };
-
-        /// 0:  49 89 ca                mov r10,rcx
         /// 3:  b8 0f 00 00 00          mov eax,0x55
         /// 8:  0f 05                   syscall
         /// a:  c3                      ret
@@ -71,216 +42,82 @@ namespace SharpMiniDump
 
         static byte[] bZwOpenProcess10 = { 0x49, 0x89, 0xCA, 0xB8, 0x26, 0x00, 0x00, 0x00, 0x0F, 0x05, 0xC3 };
 
+        /// 0:  49 89 ca                mov r10,rcx
+        /// 3:  b8 0f 00 00 00          mov eax,0xC6
+        /// 8:  0f 05                   syscall
+        /// a:  c3                      ret
+
+        static byte[] bNtCreateTransaction10 = { 0x49, 0x89, 0xCA, 0xB8, 0xC6, 0x00, 0x00, 0x00, 0x0F, 0x05, 0xC3 };
+
+        public static NTSTATUS NtCreateTransaction10(out IntPtr tHandle, int desiredAccess, IntPtr objAttr, IntPtr Uow, IntPtr TmHandle, ulong createOptions, ulong isolationLevel, ulong isolationFlags, IntPtr Timeout, IntPtr Description)
+        {
+            byte[] syscall = bNtCreateTransaction10;
+
+            IntPtr memoryAddress = msil.getAdrressWithMSIL(syscall);
+
+            Delegates.NtCreateTransaction myAssemblyFunction = (Delegates.NtCreateTransaction)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.NtCreateTransaction));
+
+            return (NTSTATUS)myAssemblyFunction(out tHandle, desiredAccess, objAttr, Uow, TmHandle, createOptions, isolationLevel, isolationFlags, Timeout, Description);
+        }
+
         public static NTSTATUS ZwOpenProcess10(ref IntPtr hProcess, ProcessAccessFlags processAccess, OBJECT_ATTRIBUTES objAttribute, ref CLIENT_ID clientid)
         {
             byte[] syscall = bZwOpenProcess10;
 
-            unsafe
-            {
-                fixed (byte* ptr = syscall)
-                {
+            IntPtr memoryAddress = msil.getAdrressWithMSIL(syscall);
+            
+            Delegates.ZwOpenProcess myAssemblyFunction = (Delegates.ZwOpenProcess)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.ZwOpenProcess));
 
-                    IntPtr memoryAddress = (IntPtr)ptr;
-
-                    if (!Natives.VirtualProtect(memoryAddress,
-                        (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
-                    {
-                        throw new Win32Exception();
-                    }
-
-                    Delegates.ZwOpenProcess myAssemblyFunction = (Delegates.ZwOpenProcess)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.ZwOpenProcess));
-
-                    return (NTSTATUS)myAssemblyFunction(out hProcess, processAccess, objAttribute, ref clientid);
-                }
-            }
+            return (NTSTATUS)myAssemblyFunction(out hProcess, processAccess, objAttribute, ref clientid);
+            
         }
 
         public static NTSTATUS ZwClose10(IntPtr handle)
         {
             byte[] syscall = bZwClose10;
 
-            unsafe
-            {
-                fixed (byte* ptr = syscall)
-                {
+            IntPtr memoryAddress = msil.getAdrressWithMSIL(syscall);
+            
+            Delegates.ZwClose myAssemblyFunction = (Delegates.ZwClose)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.ZwClose));
 
-                    IntPtr memoryAddress = (IntPtr)ptr;
-
-                    if (!Natives.VirtualProtect( memoryAddress,
-                        (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
-                    {
-                        throw new Win32Exception();
-                    }
-
-                    Delegates.ZwClose myAssemblyFunction = (Delegates.ZwClose)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.ZwClose));
-
-                    return (NTSTATUS)myAssemblyFunction(handle);
-                }
-            }
+            return (NTSTATUS)myAssemblyFunction(handle);
+            
         }
-
+        
         public static NTSTATUS ZwWriteVirtualMemory10(IntPtr hProcess, ref IntPtr lpBaseAddress, IntPtr lpBuffer, uint nSize, ref IntPtr lpNumberOfBytesWritten)
         {
             byte[] syscall = bZwWriteVirtualMemory10;
 
-            unsafe
-            {
-                fixed (byte* ptr = syscall)
-                {
+            IntPtr memoryAddress = msil.getAdrressWithMSIL(syscall);
+            
+            Delegates.ZwWriteVirtualMemory myAssemblyFunction = (Delegates.ZwWriteVirtualMemory)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.ZwWriteVirtualMemory));
 
-                    IntPtr memoryAddress = (IntPtr)ptr;
-
-                    if (!Natives.VirtualProtect( memoryAddress,
-                        (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
-                    {
-                        throw new Win32Exception();
-                    }
-
-                    Delegates.ZwWriteVirtualMemory myAssemblyFunction = (Delegates.ZwWriteVirtualMemory)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.ZwWriteVirtualMemory));
-
-                    return (NTSTATUS)myAssemblyFunction(hProcess, lpBaseAddress, lpBuffer, nSize, ref lpNumberOfBytesWritten);
-                }
-            }
+            return (NTSTATUS)myAssemblyFunction(hProcess, lpBaseAddress, lpBuffer, nSize, ref lpNumberOfBytesWritten);
+            
         }
 
         public static NTSTATUS ZwProtectVirtualMemory10(IntPtr hProcess, ref IntPtr lpBaseAddress, ref uint NumberOfBytesToProtect, uint NewAccessProtection, ref uint lpNumberOfBytesWritten)
         {
             byte[] syscall = bZwProtectVirtualMemory10;
 
-            unsafe
-            {
-                fixed (byte* ptr = syscall)
-                {
+            IntPtr memoryAddress = msil.getAdrressWithMSIL(syscall);
 
-                    IntPtr memoryAddress = (IntPtr)ptr;
+            Delegates.ZwProtectVirtualMemory myAssemblyFunction = (Delegates.ZwProtectVirtualMemory)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.ZwProtectVirtualMemory));
 
-                    if (!Natives.VirtualProtect(memoryAddress,
-                        (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
-                    {
-                        throw new Win32Exception();
-                    }
-
-                    Delegates.ZwProtectVirtualMemory myAssemblyFunction = (Delegates.ZwProtectVirtualMemory)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.ZwProtectVirtualMemory));
-
-                    return (NTSTATUS)myAssemblyFunction(hProcess, ref lpBaseAddress, ref NumberOfBytesToProtect, NewAccessProtection, ref lpNumberOfBytesWritten);
-                }
-            }
+            return (NTSTATUS)myAssemblyFunction(hProcess, ref lpBaseAddress, ref NumberOfBytesToProtect, NewAccessProtection, ref lpNumberOfBytesWritten);
+            
         }
 
-        public static NTSTATUS ZwQuerySystemInformation10(SYSTEM_INFORMATION_CLASS SystemInformationClass, IntPtr SystemInformation, uint SystemInformationLength, ref uint ReturnLength)
-        {
-            byte[] syscall = bZwQuerySystemInformation10;
-
-            unsafe
-            {
-                fixed (byte* ptr = syscall)
-                {
-
-                    IntPtr memoryAddress = (IntPtr)ptr;
-
-                    if (!Natives.VirtualProtect(memoryAddress,
-                        (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
-                    {
-                        throw new Win32Exception();
-                    }
-
-                    Delegates.ZwQuerySystemInformation myAssemblyFunction = (Delegates.ZwQuerySystemInformation)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.ZwQuerySystemInformation));
-
-                    return (NTSTATUS)myAssemblyFunction(SystemInformationClass, SystemInformation, SystemInformationLength, ref ReturnLength);
-                }
-            }
-        }
-
-        public static NTSTATUS NtAllocateVirtualMemory10(IntPtr hProcess, ref IntPtr BaseAddress, IntPtr ZeroBits, ref UIntPtr RegionSize, ulong AllocationType, ulong Protect)
-        {
-            byte[] syscall = bNtAllocateVirtualMemory10;
-
-            unsafe
-            {
-                fixed (byte* ptr = syscall)
-                {
-
-                    IntPtr memoryAddress = (IntPtr)ptr;
-
-                    if (!Natives.VirtualProtect(memoryAddress,
-                        (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
-                    {
-                        throw new Win32Exception();
-                    }
-
-                    Delegates.NtAllocateVirtualMemory myAssemblyFunction = (Delegates.NtAllocateVirtualMemory)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.NtAllocateVirtualMemory));
-
-                    return (NTSTATUS)myAssemblyFunction(hProcess, ref BaseAddress, ZeroBits, ref RegionSize, AllocationType, Protect);
-                }
-            }
-        }
-
-        public static NTSTATUS NtFreeVirtualMemory10(IntPtr hProcess, ref IntPtr BaseAddress, ref uint RegionSize, ulong FreeType)
-        {
-            byte[] syscall = bNtFreeVirtualMemory10;
-
-            unsafe
-            {
-                fixed (byte* ptr = syscall)
-                {
-
-                    IntPtr memoryAddress = (IntPtr)ptr;
-
-                    if (!Natives.VirtualProtect(memoryAddress,
-                        (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
-                    {
-                        throw new Win32Exception();
-                    }
-
-                    Delegates.NtFreeVirtualMemory myAssemblyFunction = (Delegates.NtFreeVirtualMemory)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.NtFreeVirtualMemory));
-
-                    return (NTSTATUS)myAssemblyFunction(hProcess, ref BaseAddress, ref RegionSize, FreeType);
-                }
-            }
-        }
-
-        public static NTSTATUS NtCreateFile10(out Microsoft.Win32.SafeHandles.SafeFileHandle fileHandle,
-                Int32 desiredAccess,
-                ref OBJECT_ATTRIBUTES objectAttributes,
-                out IO_STATUS_BLOCK ioStatusBlock,
-                ref Int64 allocationSize,
-                UInt32 fileAttributes,
-                System.IO.FileShare shareAccess,
-                UInt32 createDisposition,
-                UInt32 createOptions,
-                IntPtr eaBuffer,
-                UInt32 eaLength)
+        public static NTSTATUS NtCreateFile10(out IntPtr fileHandle, Int32 desiredAccess, ref OBJECT_ATTRIBUTES objectAttributes, out IO_STATUS_BLOCK ioStatusBlock, ref Int64 allocationSize, UInt32 fileAttributes, System.IO.FileShare shareAccess, UInt32 createDisposition, UInt32 createOptions, IntPtr eaBuffer, UInt32 eaLength)
         {
             byte[] syscall = bNtCreateFile10;
 
-            unsafe
-            {
-                fixed (byte* ptr = syscall)
-                {
+            IntPtr memoryAddress = msil.getAdrressWithMSIL(syscall);
 
-                    IntPtr memoryAddress = (IntPtr)ptr;
+            Delegates.NtCreateFile myAssemblyFunction = (Delegates.NtCreateFile)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.NtCreateFile));
 
-                    if (!Natives.VirtualProtect(memoryAddress,
-                        (UIntPtr)syscall.Length, 0x40, out uint oldprotect))
-                    {
-                        throw new Win32Exception();
-                    }
-
-                    Delegates.NtCreateFile myAssemblyFunction = (Delegates.NtCreateFile)Marshal.GetDelegateForFunctionPointer(memoryAddress, typeof(Delegates.NtCreateFile));
-
-                    return (NTSTATUS)myAssemblyFunction(out fileHandle,
-                 desiredAccess,
-                ref objectAttributes,
-                out ioStatusBlock,
-                ref allocationSize,
-                 fileAttributes,
-                 shareAccess,
-                 createDisposition,
-                 createOptions,
-                 eaBuffer,
-                 eaLength);
-                }
-            }
+            return (NTSTATUS)myAssemblyFunction(out fileHandle, desiredAccess,ref objectAttributes,out ioStatusBlock,ref allocationSize, fileAttributes, shareAccess, createDisposition, createOptions, eaBuffer, eaLength);
+            
         }
 
         public struct Delegates
@@ -288,6 +125,10 @@ namespace SharpMiniDump
             [SuppressUnmanagedCodeSecurity]
             [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
             public delegate int ZwOpenProcess(out IntPtr hProcess, ProcessAccessFlags processAccess, OBJECT_ATTRIBUTES objAttribute, ref CLIENT_ID clientid);
+
+            [SuppressUnmanagedCodeSecurity]
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate int NtCreateTransaction(out IntPtr tHandle, int desiredAccess, IntPtr objAttr, IntPtr Uow, IntPtr TmHandle, ulong createOptions, ulong isolationLevel, ulong isolationFlags, IntPtr Timeout, IntPtr Description);
 
             [SuppressUnmanagedCodeSecurity]
             [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -303,33 +144,7 @@ namespace SharpMiniDump
 
             [SuppressUnmanagedCodeSecurity]
             [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            public delegate int ZwQuerySystemInformation(SYSTEM_INFORMATION_CLASS SystemInformationClass, IntPtr SystemInformation, uint SystemInformationLength, ref uint ReturnLength);
-
-            [SuppressUnmanagedCodeSecurity]
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            public delegate int NtAllocateVirtualMemory(IntPtr ProcessHandle, ref IntPtr BaseAddress, IntPtr ZeroBits, ref UIntPtr RegionSize, ulong AllocationType, ulong Protect);
-
-            [SuppressUnmanagedCodeSecurity]
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            public delegate int NtFreeVirtualMemory(IntPtr ProcessHandle, ref IntPtr BaseAddress, ref uint RegionSize, ulong FreeType);
-
-            [SuppressUnmanagedCodeSecurity]
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            public delegate int NtCreateFile(out Microsoft.Win32.SafeHandles.SafeFileHandle fileHandle,
-                Int32 desiredAccess,
-                ref OBJECT_ATTRIBUTES objectAttributes,
-                out IO_STATUS_BLOCK ioStatusBlock,
-                ref Int64 allocationSize,
-                UInt32 fileAttributes,
-                System.IO.FileShare shareAccess,
-                UInt32 createDisposition,
-                UInt32 createOptions,
-                IntPtr eaBuffer,
-                UInt32 eaLength);
-
-            [SuppressUnmanagedCodeSecurity]
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            public delegate bool RtlEqualUnicodeString(UNICODE_STRING String1, UNICODE_STRING String2, bool CaseInSensitive);
+            public delegate int NtCreateFile(out IntPtr fileHandle, Int32 desiredAccess, ref OBJECT_ATTRIBUTES objectAttributes, out IO_STATUS_BLOCK ioStatusBlock, ref Int64 allocationSize, UInt32 fileAttributes, System.IO.FileShare shareAccess, UInt32 createDisposition, UInt32 createOptions, IntPtr eaBuffer, UInt32 eaLength);
 
             [SuppressUnmanagedCodeSecurity]
             [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -341,33 +156,19 @@ namespace SharpMiniDump
 
             [SuppressUnmanagedCodeSecurity]
             [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            public delegate bool MiniDumpWriteDump(IntPtr hProcess, uint ProcessId, Microsoft.Win32.SafeHandles.SafeFileHandle hFile, int DumpType, IntPtr ExceptionParam, IntPtr UserStreamParam, IntPtr CallbackParam);
-
-
+            public delegate bool MiniDumpWriteDump(IntPtr hProcess, uint ProcessId, IntPtr hFile, int DumpType, IntPtr ExceptionParam, IntPtr UserStreamParam, IntPtr CallbackParam);
+            
             [SuppressUnmanagedCodeSecurity]
             [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
             public delegate bool OpenProcessToken(IntPtr hProcess, UInt32 dwDesiredAccess, out IntPtr hToken);
 
             [SuppressUnmanagedCodeSecurity]
             [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            public delegate int LdrLoadDll(IntPtr PathToFile,
-                UInt32 dwFlags,
-                ref Natives.UNICODE_STRING ModuleFileName,
-                ref IntPtr ModuleHandle);
-
-            
+            public delegate int LdrLoadDll(IntPtr PathToFile, UInt32 dwFlags, ref Natives.UNICODE_STRING ModuleFileName, ref IntPtr ModuleHandle);
+                        
             [SuppressUnmanagedCodeSecurity]
             [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
             public delegate int NtFilterToken(IntPtr TokenHandle, uint Flags, IntPtr SidsToDisable, IntPtr PrivilegesToDelete, IntPtr RestrictedSids, ref IntPtr hToken);
-            
-            [SuppressUnmanagedCodeSecurity]
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            public delegate bool RevertToSelf();
-
-            [SuppressUnmanagedCodeSecurity]
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            public delegate Boolean ImpersonateLoggedOnUser(IntPtr hToken);
-            
 
             [SuppressUnmanagedCodeSecurity]
             [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -408,9 +209,6 @@ namespace SharpMiniDump
             [SuppressUnmanagedCodeSecurity]
             [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
             public delegate int PssCaptureSnapshot(IntPtr ProcessHandle, PSS_CAPTURE_FLAGS CaptureFlags, int ThreadContextFlags, ref IntPtr SnapshotHandle);
-
-            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-            public delegate bool MyMiniDumpWriteDumpCallback(IntPtr CallbackParam,  IntPtr CallbackInput, IntPtr CallbackOutput);
         }
     }
 }
